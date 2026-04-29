@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Wochenplan">
+<title>Mein Wochenplan</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #FAF8F4;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-faint: #A8A29E;
+  --line: #E7E4DE;
+  --white: #FFFFFF;
+  --purple: #7C6FCD;
+  --purple-light: #EEEDFE;
+  --purple-text: #3C3489;
+  --teal: #2DA882;
+  --teal-light: #E0F5EE;
+  --teal-text: #0F6E56;
+  --amber: #D48A15;
+  --amber-light: #FEF3DA;
+  --amber-text: #854F0B;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
+  padding-left: max(env(safe-area-inset-left, 0px), 1rem);
+  padding-right: max(env(safe-area-inset-right, 0px), 1rem);
+  padding-bottom: 4rem;
+}
+
+/* Auth screen */
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  text-align: center;
+}
+.auth-title { font-family: 'DM Serif Display', serif; font-size: 2rem; letter-spacing: -0.02em; }
+.auth-title em { font-style: italic; color: var(--purple); }
+.auth-sub { font-size: 14px; color: var(--ink-soft); max-width: 280px; line-height: 1.6; }
+.btn-google {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--white); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  font-weight: 500; color: var(--ink); cursor: pointer; transition: box-shadow .15s;
+}
+.btn-google:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+.setup-hint {
+  font-size: 12px; color: var(--ink-faint); max-width: 300px;
+  line-height: 1.6; background: var(--white); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 16px; text-align: left;
+}
+.setup-hint b { color: var(--ink-soft); font-weight: 500; }
+.setup-hint a { color: var(--purple); text-decoration: none; }
+
+/* Sync bar */
+#sync-bar { display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-faint); margin-bottom: 0.5rem; }
+#sync-bar.visible { display: flex; }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); flex-shrink: 0; }
+.sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
+.sync-dot.synced { background: var(--teal); }
+.sync-dot.error { background: #E24B4A; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Page header */
+.page-header {
+  max-width: 900px; margin: 0 auto 2rem;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--line);
+}
+.page-title { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1.1; letter-spacing: -0.02em; }
+.page-title em { font-style: italic; color: var(--purple); }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.week-nav { display: flex; align-items: center; gap: 8px; }
+.week-label { font-size: 13px; color: var(--ink-soft); min-width: 200px; text-align: center; }
+.btn-nav {
+  width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--white); cursor: pointer; color: var(--ink-soft); font-size: 15px;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.btn-nav:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.stats-row { display: flex; gap: 6px; align-items: center; }
+.stat-pill { font-size: 12px; color: var(--ink-soft); background: var(--white); border: 1px solid var(--line); border-radius: 20px; padding: 4px 12px; }
+.stat-pill b { font-weight: 500; color: var(--ink); }
+.btn-signout { font-size: 12px; color: var(--ink-faint); background: none; border: none; cursor: pointer; padding: 0; font-family: 'DM Sans', sans-serif; }
+.btn-signout:hover { color: var(--ink-soft); }
+
+/* Focus banner */
+.main { max-width: 900px; margin: 0 auto; }
+.focus-banner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.75rem; }
+.focus-card { border-radius: 12px; padding: 12px 16px; border: 1px solid; position: relative; overflow: hidden; }
+.focus-card::before { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; opacity: .12; }
+.focus-card.tue { background: var(--purple-light); border-color: #C4BEF0; }
+.focus-card.tue::before { background: var(--purple); }
+.focus-card.wed { background: var(--teal-light); border-color: #9FE1CB; }
+.focus-card.wed::before { background: var(--teal); }
+.focus-day { font-size: 10px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
+.focus-card.tue .focus-day { color: var(--purple); }
+.focus-card.wed .focus-day { color: var(--teal); }
+.focus-title { font-family: 'DM Serif Display', serif; font-size: 15px; line-height: 1.2; }
+.focus-card.tue .focus-title { color: var(--purple-text); }
+.focus-card.wed .focus-title { color: var(--teal-text); }
+.focus-sub { font-size: 11px; margin-top: 2px; opacity: .7; }
+.focus-card.tue .focus-sub { color: var(--purple-text); }
+.focus-card.wed .focus-sub { color: var(--teal-text); }
+
+/* Tabs */
+.day-tabs { display: flex; gap: 4px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.tab { font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--white); cursor: pointer; color: var(--ink-soft); transition: all .15s; }
+.tab:hover { border-color: var(--ink-faint); color: var(--ink); }
+.tab.active { background: var(--ink); border-color: var(--ink); color: var(--white); font-weight: 500; }
+.tab.focus-tue { border-color: #C4BEF0; color: var(--purple); }
+.tab.focus-tue.active { background: var(--purple); border-color: var(--purple); color: var(--white); }
+.tab.focus-wed { border-color: #9FE1CB; color: var(--teal); }
+.tab.focus-wed.active { background: var(--teal); border-color: var(--teal); color: var(--white); }
+
+/* Day views */
+.day-view { display: none; }
+.day-view.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+/* Section cards */
+.section { background: var(--white); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; transition: box-shadow .2s; }
+.section:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.section-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; }
+.section-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); flex-wrap: wrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.count { font-size: 11px; color: var(--ink-faint); font-weight: 400; }
+.progress-track { height: 2px; background: var(--line); margin: 0 16px 10px; border-radius: 2px; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width .4s cubic-bezier(.4,0,.2,1); }
+
+/* Tasks */
+.tasks { padding: 0 16px 4px; }
+.task { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.task:last-child { border-bottom: none; }
+.task.carried { background: var(--amber-light); border-radius: 6px; margin: 2px 0; padding: 7px 6px; }
+.task-check {
+  flex-shrink: 0; width: 17px; height: 17px; margin-top: 1px;
+  border: 1.5px solid var(--line); border-radius: 4px; background: var(--white);
+  cursor: pointer; appearance: none; -webkit-appearance: none; position: relative; transition: all .15s;
+}
+.task-check:hover { border-color: var(--ink-faint); }
+.task-check:checked { background: var(--ink); border-color: var(--ink); }
+.task-check:checked::after { content: ''; position: absolute; left: 4px; top: 2px; width: 6px; height: 9px; border: 1.5px solid var(--white); border-top: none; border-left: none; transform: rotate(42deg); }
+.task-label { font-size: 13.5px; line-height: 1.45; color: var(--ink); flex: 1; cursor: pointer; transition: color .15s; }
+.task-label.done { text-decoration: line-through; color: var(--ink-faint); }
+.task.carried .task-label::before { content: '↩ '; font-size: 11px; color: var(--amber); font-weight: 500; }
+.task-del { opacity: 0; background: none; border: none; cursor: pointer; color: var(--ink-faint); font-size: 14px; padding: 0; transition: opacity .15s, color .15s; flex-shrink: 0; }
+.task:hover .task-del { opacity: 1; }
+.task-del:hover { color: #E24B4A; }
+.carried-badge { font-size: 10px; font-weight: 500; color: var(--amber-text); background: var(--amber-light); border: 1px solid #FAC775; border-radius: 10px; padding: 1px 7px; white-space: nowrap; }
+.add-row { padding: 6px 16px 12px; }
+.add-input { width: 100%; background: var(--cream); border: 1px solid transparent; border-radius: 7px; padding: 6px 10px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--ink); transition: border-color .15s, background .15s; }
+.add-input::placeholder { color: var(--ink-faint); }
+.add-input:focus { outline: none; border-color: var(--line); background: var(--white); }
+
+/* Quick add */
+.quick-section { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-top: 1.25rem; }
+.quick-label { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+.quick-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.quick-form input { flex: 1; min-width: 140px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; color: var(--ink); transition: border-color .15s; }
+.quick-form input::placeholder { color: var(--ink-faint); }
+.quick-form input:focus { outline: none; border-color: var(--ink-faint); }
+.quick-form select { font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; color: var(--ink); cursor: pointer; }
+.quick-form select:focus { outline: none; }
+.btn-add { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; background: var(--ink); color: var(--white); border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+.btn-add:hover { opacity: .85; }
+
+#app { display: none; padding: 1.5rem 0 0; }
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div>
+    <h1 class="auth-title">Meine Woche <em>—</em></h1>
+  </div>
+  <p class="auth-sub">Melde dich mit Google an, damit deine To-dos auf allen Geräten synchronisiert werden.</p>
+  <button class="btn-google" onclick="signIn()">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    Mit Google anmelden
+  </button>
+  <div class="setup-hint">
+    <b>Einmalige Einrichtung nötig:</b><br><br>
+    1. Öffne <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a><br>
+    2. Neues Projekt erstellen<br>
+    3. APIs &amp; Dienste → Google Drive API aktivieren<br>
+    4. Anmeldedaten → OAuth 2.0-Client-ID → Webanwendung<br>
+    5. Deine URL als autorisierte Quelle eintragen<br>
+    6. Client-ID in dieser Datei bei <b>CLIENT_ID</b> eintragen
+  </div>
+</div>
+
+<div id="app">
+  <div style="max-width:900px;margin:0 auto;">
+    <div id="sync-bar">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-text"></span>
+    </div>
+  </div>
+
+  <header class="page-header">
+    <h1 class="page-title">Meine Woche <em>—</em></h1>
+    <div class="header-right">
+      <div class="week-nav">
+        <button class="btn-nav" onclick="chWeek(-1)">‹</button>
+        <span class="week-label" id="wlabel"></span>
+        <button class="btn-nav" onclick="chWeek(1)">›</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-pill">Offen: <b id="sopen">0</b></div>
+        <div class="stat-pill">Erledigt: <b id="sdone">0</b></div>
+        <button class="btn-signout" onclick="signOut()">Abmelden</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="focus-banner">
+      <div class="focus-card tue">
+        <div class="focus-day">Dienstag</div>
+        <div class="focus-title">Interior Design</div>
+        <div class="focus-sub">Ganztags geblockt</div>
+      </div>
+      <div class="focus-card wed">
+        <div class="focus-day">Mittwoch</div>
+        <div class="focus-title">Strategie &amp; Content</div>
+        <div class="focus-sub">Homeoffice-Tag</div>
+      </div>
+    </div>
+    <div class="day-tabs" id="tabs"></div>
+    <div id="day-views"></div>
+    <div class="quick-section">
+      <div class="quick-label">Schnell notieren</div>
+      <div class="quick-form">
+        <input type="text" id="qi" placeholder="Neues To-do…" onkeydown="if(event.key==='Enter')qadd()"/>
+        <select id="qday"></select>
+        <select id="qcat"></select>
+        <button class="btn-add" onclick="qadd()">+ Hinzufügen</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// ── KONFIGURATION ──────────────────────────────────────
+// Trage hier deine Google OAuth Client-ID ein (siehe Setup-Anleitung oben)
+const CLIENT_ID = '377640139387-emiuh24nv7lm03rr8f6eh7o4uk1ig1lj.apps.googleusercontent.com';
+// ──────────────────────────────────────────────────────
+
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+const FILE_NAME = 'wochenplan-daten.json';
+let accessToken = null, driveFileId = null, saveTimer = null;
+
+function signIn() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { alert('Anmeldung fehlgeschlagen: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      sessionStorage.setItem('gd_token', accessToken);
+      showApp();
+      await loadFromDrive();
+    },
+  });
+  client.requestAccessToken();
+}
+
+function signOut() {
+  accessToken = null; driveFileId = null; data = {};
+  sessionStorage.removeItem('gd_token');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+async function driveReq(url, opts={}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Authorization': 'Bearer ' + accessToken, ...(opts.headers||{}) }
+  });
+  if (res.status === 401) { signOut(); return null; }
+  return res;
+}
+
+async function loadFromDrive() {
+  setSyncStatus('syncing', 'Daten werden geladen…');
+  const search = await driveReq(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${FILE_NAME}'&fields=files(id)`
+  );
+  if (!search) return;
+  const { files } = await search.json();
+  if (files && files.length > 0) {
+    driveFileId = files[0].id;
+    const res = await driveReq(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`);
+    if (res) { try { data = await res.json(); } catch(e) { data={}; } }
+  }
+  setSyncStatus('synced', 'Synchronisiert');
+  render();
+}
+
+async function saveToDrive() {
+  if (!accessToken) return;
+  setSyncStatus('syncing', 'Wird gespeichert…');
+  const body = JSON.stringify(data);
+  let res;
+  if (driveFileId) {
+    res = await driveReq(
+      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+      { method: 'PATCH', headers: {'Content-Type':'application/json'}, body }
+    );
+  } else {
+    const boundary = 'wp_boundary_x7';
+    const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'] });
+    const mp = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`;
+    res = await driveReq(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      { method: 'POST', headers: {'Content-Type':`multipart/related; boundary=${boundary}`}, body: mp }
+    );
+    if (res && res.ok) { const j = await res.json(); driveFileId = j.id; }
+  }
+  setSyncStatus(res && res.ok ? 'synced' : 'error', res && res.ok ? 'Gespeichert ✓' : 'Fehler beim Speichern');
+}
+
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveToDrive, 1200); }
+
+function setSyncStatus(state, text) {
+  const bar = document.getElementById('sync-bar');
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-text').textContent = text;
+  bar.classList.add('visible');
+  if (state === 'synced') setTimeout(() => bar.classList.remove('visible'), 2500);
+}
+
+// ── App data ──────────────────────────────────────────
+const DAYS = [
+  {id:'mo', full:'Montag'},
+  {id:'tu', full:'Dienstag', focus:'tue'},
+  {id:'we', full:'Mittwoch', focus:'wed'},
+  {id:'th', full:'Donnerstag'},
+  {id:'fr', full:'Freitag'},
+];
+const CATS = {
+  mo:[
+    {id:'jf',    label:'Jour fixe',        color:'#3B82C4'},
+    {id:'leads', label:'Leads & Angebote', color:'#D85A30'},
+    {id:'orga',  label:'Eigene Projekte',  color:'#7C6FCD'},
+    {id:'fin',   label:'Finanzen & Admin', color:'#D48A15'},
+    {id:'klein', label:'Kleines',          color:'#888780'},
+  ],
+  tu:[
+    {id:'interior', label:'Interior Design', color:'#7C6FCD'},
+    {id:'klein',    label:'Kleines',          color:'#888780'},
+  ],
+  we:[
+    {id:'strat',   label:'Strategie', color:'#2DA882'},
+    {id:'content', label:'Content',   color:'#C94F7C'},
+    {id:'klein',   label:'Kleines',   color:'#888780'},
+  ],
+  th:[
+    {id:'mgmt',  label:'Geschäftsführung', color:'#3B82C4'},
+    {id:'team',  label:'Team & HR',        color:'#2DA882'},
+    {id:'sales', label:'Sales',            color:'#D85A30'},
+    {id:'fin',   label:'Finanzen & Admin', color:'#D48A15'},
+    {id:'klein', label:'Kleines',          color:'#888780'},
+  ],
+  fr:[
+    {id:'sales',   label:'Sales',                color:'#D85A30'},
+    {id:'review',  label:'Wochenrückblick',       color:'#7C6FCD'},
+    {id:'planung', label:'Planung nächste Woche', color:'#2DA882'},
+    {id:'klein',   label:'Kleines',               color:'#888780'},
+  ],
+};
+
+let woff=0, activeDay='mo', data={};
+
+function wkey(o){const d=new Date();d.setDate(d.getDate()+o*7);const m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));return m.toISOString().slice(0,10);}
+function wlabel(o){const k=wkey(o);const m=new Date(k);const s=new Date(m);s.setDate(m.getDate()+6);const f=d=>d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});const pre=o===0?'Diese Woche':o===1?'Nächste Woche':o===-1?'Letzte Woche':'';return pre?`${pre} · ${f(m)} – ${f(s)}`:`${f(m)} – ${f(s)}`;}
+function prevWkey(k){const d=new Date(k);d.setDate(d.getDate()-7);return d.toISOString().slice(0,10);}
+
+function initWeek(k){
+  if(data[k])return;
+  data[k]={};
+  const prev=prevWkey(k);
+  DAYS.forEach(day=>{
+    data[k][day.id]={};
+    (CATS[day.id]||[]).forEach(cat=>{
+      let carried=[];
+      if(data[prev]&&data[prev][day.id]&&data[prev][day.id][cat.id]){
+        carried=data[prev][day.id][cat.id].filter(t=>!t.done).map(t=>({id:Date.now()+Math.random(),text:t.text,done:false,carried:true}));
+      }
+      data[k][day.id][cat.id]=carried;
+    });
+  });
+}
+
+function toggleTask(dayId,catId,tid){const t=data[wkey(woff)][dayId][catId].find(x=>x.id===tid);if(t)t.done=!t.done;render();scheduleSave();}
+function delTask(dayId,catId,tid){data[wkey(woff)][dayId][catId]=data[wkey(woff)][dayId][catId].filter(x=>x.id!==tid);render();scheduleSave();}
+function addTask(dayId,catId,inp){const txt=inp.value.trim();if(!txt)return;data[wkey(woff)][dayId][catId].push({id:Date.now()+Math.random(),text:txt,done:false});inp.value='';render();scheduleSave();}
+
+function buildTabs(){const el=document.getElementById('tabs');el.innerHTML='';DAYS.forEach(day=>{const b=document.createElement('button');b.className='tab'+(day.focus?' focus-'+day.focus:'')+(day.id===activeDay?' active':'');b.textContent=day.full;b.onclick=()=>{activeDay=day.id;renderDayViews();renderTabs();};el.appendChild(b);});}
+function renderTabs(){document.querySelectorAll('.tab').forEach((b,i)=>{const day=DAYS[i];b.className='tab'+(day.focus?' focus-'+day.focus:'')+(day.id===activeDay?' active':'');});}
+
+function renderDayViews(){
+  const k=wkey(woff);const el=document.getElementById('day-views');el.innerHTML='';
+  DAYS.forEach(day=>{
+    const dv=document.createElement('div');dv.className='day-view'+(day.id===activeDay?' active':'');
+    (CATS[day.id]||[]).forEach(cat=>{
+      const tasks=data[k][day.id][cat.id]||[];
+      const done=tasks.filter(t=>t.done).length;
+      const pct=tasks.length?Math.round(done/tasks.length*100):0;
+      const uid='t-'+day.id+'-'+cat.id;
+      const carried=tasks.filter(t=>t.carried&&!t.done).length;
+      const badge=carried>0?`<span class="carried-badge">↩ ${carried} aus Vorwoche</span>`:'';
+      const sec=document.createElement('div');sec.className='section';
+      sec.innerHTML=`<div class="section-head"><div class="section-title"><div class="dot" style="background:${cat.color}"></div>${cat.label}${badge}</div><span class="count">${tasks.length} To-do${tasks.length!==1?'s':''}</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${cat.color}"></div></div><div class="tasks" id="${uid}"></div><div class="add-row"><input class="add-input" type="text" placeholder="Hinzufügen…" onkeydown="if(event.key==='Enter')addTask('${day.id}','${cat.id}',this)"/></div>`;
+      dv.appendChild(sec);
+      const tasksEl=sec.querySelector('#'+uid);
+      tasks.forEach(task=>{
+        const row=document.createElement('div');row.className='task'+(task.carried&&!task.done?' carried':'');
+        row.innerHTML=`<input type="checkbox" class="task-check" ${task.done?'checked':''} onchange="toggleTask('${day.id}','${cat.id}',${task.id})"/><span class="task-label${task.done?' done':''}" onclick="toggleTask('${day.id}','${cat.id}',${task.id})">${task.text}</span><button class="task-del" onclick="delTask('${day.id}','${cat.id}',${task.id})">✕</button>`;
+        tasksEl.appendChild(row);
+      });
+    });
+    el.appendChild(dv);
+  });
+}
+
+function updateStats(){let o=0,d=0;DAYS.forEach(day=>{(CATS[day.id]||[]).forEach(cat=>{(data[wkey(woff)][day.id][cat.id]||[]).forEach(t=>t.done?d++:o++);});});document.getElementById('sopen').textContent=o;document.getElementById('sdone').textContent=d;}
+
+function buildQuickSelects(){const qd=document.getElementById('qday');const prev=qd.value||activeDay;qd.innerHTML='';DAYS.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.full;qd.appendChild(o);});qd.value=prev;const upd=()=>{const qc=document.getElementById('qcat');qc.innerHTML='';(CATS[qd.value]||[]).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.label;qc.appendChild(o);});};qd.onchange=upd;upd();}
+
+function qadd(){const txt=document.getElementById('qi').value.trim();if(!txt)return;const dayId=document.getElementById('qday').value;const catId=document.getElementById('qcat').value;data[wkey(woff)][dayId][catId].push({id:Date.now()+Math.random(),text:txt,done:false});document.getElementById('qi').value='';render();scheduleSave();}
+
+function chWeek(d){woff+=d;render();}
+
+function render(){const k=wkey(woff);initWeek(k);document.getElementById('wlabel').textContent=wlabel(woff);buildTabs();renderDayViews();updateStats();buildQuickSelects();}
+
+window.addEventListener('load',()=>{
+  const saved=sessionStorage.getItem('gd_token');
+  if(saved){accessToken=saved;showApp();loadFromDrive();}
+});
+</script>
+</body>
+</html>
